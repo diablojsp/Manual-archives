@@ -30,6 +30,7 @@ Just try to:
 - name files clearly
 - put them in the right place
 - don’t upload stuff that’s easily available for purchase
+- You can upload manuals on my discord server at https://discord.gg/vHvweF7y
 
 ## Final note
 Use this info at your own risk. Don’t do anything sketchy or unsafe just because a manual says so.
