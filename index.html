@@ -3,33 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manuals Library</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Manuals Navigator</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        label { display: block; margin: 15px 0 5px; color: #bbb; font-size: 0.9em; }
+        select { width: 100%; padding: 10px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; cursor: pointer; }
+        select:disabled { opacity: 0.5; cursor: not-allowed; }
+        .viewer { margin-top: 20px; text-align: center; }
+        .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+        .btn:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📚 Manuals Library</h1>
-            <p class="subtitle">Browse manuals by Manufacturer → Make → Model</p>
-        </header>
 
-        <div class="breadcrumb" id="breadcrumb">
-            <span class="breadcrumb-item active" data-level="root">Home</span>
-        </div>
+<div class="container">
+    <h2>Equipment Manuals</h2>
 
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Search manufacturers, makes, or models...">
-        </div>
+    <label for="brand">Select Brand</label>
+    <select id="brand">
+        <option value="">-- Choose Brand --</option>
+    </select>
 
-        <div id="content" class="content">
-            <!-- Dynamic content loads here -->
-        </div>
+    <label for="model">Select Model</label>
+    <select id="model" disabled>
+        <option value="">-- Select a Brand first --</option>
+    </select>
 
-        <div id="error" class="error" style="display: none;">
-            <p>⚠️ Unable to load manuals index. Make sure <code>manuals/index.json</code> exists.</p>
-        </div>
+    <label for="file">Available Manuals</label>
+    <select id="file" disabled>
+        <option value="">-- Select a Model first --</option>
+    </select>
+
+    <div class="viewer" id="viewer" style="display:none;">
+        <p id="fileName"></p>
+        <a href="#" id="downloadBtn" class="btn" target="_blank">Open PDF</a>
     </div>
+</div>
 
-    <script src="script.js"></script>
+<script>
+    // --- CONFIGURATION ---
+    const GITHUB_USER = 'YOUR_USERNAME'; // Change to your GitHub username
+    const GITHUB_REPO = 'YOUR_REPO_NAME'; // Change to your repo name
+    const BASE_PATH = 'manuals'; // The root folder name
+
+    const brandSelect = document.getElementById('brand');
+    const modelSelect = document.getElementById('model');
+    const fileSelect = document.getElementById('file');
+    const viewer = document.getElementById('viewer');
+
+    // Fetch data from GitHub API
+    async function getRepoContent(path = '') {
+        const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${path}`;
+        const response = await fetch(url);
+        return await response.json();
+    }
+
+    // Initialize: Get Brands
+    async function init() {
+        const brands = await getRepoContent(BASE_PATH);
+        brands.forEach(item => {
+            if (item.type === 'dir') {
+                let opt = new Option(item.name, item.path);
+                brandSelect.add(opt);
+            }
+        });
+    }
+
+    // Brand Changed -> Get Models
+    brandSelect.addEventListener('change', async (e) => {
+        modelSelect.innerHTML = '<option value="">-- Loading Models... --</option>';
+        modelSelect.disabled = true;
+        fileSelect.disabled = true;
+        viewer.style.display = 'none';
+
+        if (!e.target.value) return;
+
+        const models = await getRepoContent(e.target.value);
+        modelSelect.innerHTML = '<option value="">-- Choose Model --</option>';
+        models.forEach(item => {
+            if (item.type === 'dir') {
+                modelSelect.add(new Option(item.name, item.path));
+            }
+        });
+        modelSelect.disabled = false;
+    });
+
+    // Model Changed -> Get Files
+    modelSelect.addEventListener('change', async (e) => {
+        fileSelect.innerHTML = '<option value="">-- Loading Files... --</option>';
+        fileSelect.disabled = true;
+        viewer.style.display = 'none';
+
+        if (!e.target.value) return;
+
+        const files = await getRepoContent(e.target.value);
+        fileSelect.innerHTML = '<option value="">-- Select File --</option>';
+        files.forEach(item => {
+            if (item.name.endsWith('.pdf')) {
+                fileSelect.add(new Option(item.name, item.download_url));
+            }
+        });
+        fileSelect.disabled = false;
+    });
+
+    // File Selected -> Show Download Link
+    fileSelect.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        document.getElementById('fileName').innerText = fileSelect.options[fileSelect.selectedIndex].text;
+        document.getElementById('downloadBtn').href = e.target.value;
+        viewer.style.display = 'block';
+    });
+
+    init();
+</script>
+
 </body>
 </html>
